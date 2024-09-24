@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maze Solver</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      margin: 0;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="mazeCanvas" width="900" height="900"></canvas>
+
+<script>
+  const canvas = document.getElementById("mazeCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const rows = 30;
+  const cols = 30;
+  const cellSize = canvas.width / cols;
+
+  // Create a 2D array for the maze grid
+  let maze = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+  // Example larger maze with more walls (1s are walls, 0s are paths)
+  maze = [
+    [0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0],
+    [0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0],
+    [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1],
+    [0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+    // Add more rows for larger maze
+    // Keep maze solvable with paths leading to the bottom-right
+  ];
+
+  // DFS Maze Solver
+  const start = [0, 0];  // Start at top-left
+  const end = [rows - 1, cols - 1];  // End at bottom-right
+  let path = [];
+
+  function drawMaze() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (maze[row][col] === 1) {
+          ctx.fillStyle = "black";
+        } else {
+          ctx.fillStyle = "white";
+        }
+        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        ctx.strokeRect(col * cellSize, row * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  function drawPath() {
+    ctx.fillStyle = "blue";
+    for (let [row, col] of path) {
+      ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+    }
+  }
+
+  function dfs(row, col, visited) {
+    // If reached the end
+    if (row === end[0] && col === end[1]) {
+      path.push([row, col]);
+      return true;
+    }
+
+    // Mark the current cell as visited
+    visited[row][col] = true;
+    path.push([row, col]);
+
+    // Move in 4 directions: down, up, right, left
+    const directions = [
+      [1, 0], [-1, 0], [0, 1], [0, -1]
+    ];
+
+    for (let [dx, dy] of directions) {
+      const newRow = row + dx;
+      const newCol = col + dy;
+
+      // Check if it's within bounds and not visited or a wall
+      if (
+        newRow >= 0 && newRow < rows &&
+        newCol >= 0 && newCol < cols &&
+        !visited[newRow][newCol] &&
+        maze[newRow][newCol] === 0
+      ) {
+        if (dfs(newRow, newCol, visited)) {
+          return true;
+        }
+      }
+    }
+
+    // Backtrack if no solution found
+    path.pop();
+    return false;
+  }
+
+  function solveMaze() {
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+    path = [];
+    if (dfs(start[0], start[1], visited)) {
+      console.log("Path found!");
+    } else {
+      console.log("No path found.");
+    }
+    drawMaze();
+    drawPath();
+  }
+
+  // Initialize maze and solver
+  drawMaze();
+  solveMaze();
+
+</script>
+
+</body>
+</html>
